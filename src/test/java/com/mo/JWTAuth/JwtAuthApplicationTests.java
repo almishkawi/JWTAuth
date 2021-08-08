@@ -18,6 +18,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -47,57 +48,81 @@ class JwtAuthApplicationTests {
 	}
 
 	@Test
-	void createUser() throws Exception {
+	void functional() throws Exception {
+		/* SIGNUP TEST — "POST /api/users" */
 		CreateUserRequest userRequest = new CreateUserRequest();
 		userRequest.setFirstName("Mo");
 		userRequest.setLastName("Almishkawi");
-		userRequest.setEmail("mo.almishkawi@gmail.com");
-		userRequest.setPassword("P@SsWORddd");
+		userRequest.setEmail("mo@testemail.me");
+		userRequest.setPassword("N0TMyReAlP@SsWORddd");
 		String requestPayload = OBJECT_MAPPER.writeValueAsString(userRequest);
 
-		MvcResult result = mockMvc
+		/* payload not valid scenario */
+		mockMvc.perform(post("/api/users")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+				.andExpect(status().isBadRequest());
+		/* ... */
+
+		/* success scenario */
+		MvcResult createRequestResult = mockMvc
 				.perform(post("/api/users")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(requestPayload))
 				.andExpect(status().isCreated())
 				.andReturn();
 
+		/* email already exists scenario */
+		mockMvc
+				.perform(post("/api/users")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(requestPayload))
+				.andExpect(status().isBadRequest());
+
 		UserResponse userResponse = modelMapper.map(userRequest, UserResponse.class);
-		String responseBody = OBJECT_MAPPER.writeValueAsString(userResponse);
+		String userResponseBody = OBJECT_MAPPER.writeValueAsString(userResponse);
 
-		assertEquals(responseBody, result.getResponse().getContentAsString());
-		assertFalse(responseBody.contains("password"));
-	}
+		assertEquals(userResponseBody, createRequestResult.getResponse().getContentAsString());
+		assertFalse(userResponseBody.contains("password"));
+		/* ------------------------------- */
 
-	@Test
-	void loginUser() throws Exception {
-		CreateUserRequest userRequest = new CreateUserRequest();
-		userRequest.setFirstName("Test");
-		userRequest.setLastName("User");
-		userRequest.setEmail("test.user@testemail.com");
-		userRequest.setPassword("P@SsWORddd");
-		String createRequestPayload = OBJECT_MAPPER.writeValueAsString(userRequest);
-
-		mockMvc.perform(post("/api/users")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(createRequestPayload))
-				.andExpect(status().isCreated())
-				.andReturn();
-
+		/* LOGIN TEST — "POST /api/login" */
 		LoginUserRequest loginUserRequest = new LoginUserRequest();
-		loginUserRequest.setEmail("test.user@testemail.com");
-		loginUserRequest.setPassword("P@SsWORddd");
+		loginUserRequest.setEmail("mo@testemail.me");
+		loginUserRequest.setPassword("N0TMyReAlP@SsWORddd");
 		String loginRequestPayload = OBJECT_MAPPER.writeValueAsString(loginUserRequest);
 
-		MvcResult result = mockMvc.perform(post("/api/login")
+		/* success scenario */
+		MvcResult loginRequestResult = mockMvc.perform(post("/api/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(loginRequestPayload))
 				.andExpect(status().isOk())
 				.andExpect(header().exists("Authorization"))
 				.andReturn();
 
-		assertTrue(result.getResponse()
-				.getHeaderValue("Authorization").toString().startsWith("Bearer ey"));
-	}
+		String authToken = loginRequestResult.getResponse()
+				.getHeaderValue("Authorization").toString();
 
+		assertTrue(authToken.startsWith("Bearer ey"));
+
+		/* Invalid credentials scenario */
+		loginUserRequest.setPassword("onetwothree");
+		loginRequestPayload = OBJECT_MAPPER.writeValueAsString(loginUserRequest);
+		mockMvc.perform(post("/api/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(loginRequestPayload))
+				.andExpect(status().isUnauthorized());
+		/* ------------------------------- */
+
+		/* AUTHENTICATED USER DETAILS TEST — "GET /api/users/authenticated" */
+		MvcResult authenticatedRequestResult = mockMvc.perform(get("/api/users/authenticated")
+				.contentType(MediaType.APPLICATION_JSON)
+				.header("Authorization", authToken)
+				.content("{}"))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		assertEquals(userResponseBody, authenticatedRequestResult.getResponse().getContentAsString());
+		/* AUTHENTICATED USER DETAILS TEST — END */
+	}
 }
