@@ -42,4 +42,11 @@ public class UserService {
 
         return userDTO;
     }
+
+    public UserDTO getUserByEmail(String userEmail) {
+        User user = userRepository.findByEmail(userEmail);
+        UserDTO userDTO = modelMapper.map(user, UserDTO.class);
+
+        return userDTO;
+    }
 }

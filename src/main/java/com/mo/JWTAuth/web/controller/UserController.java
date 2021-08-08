@@ -34,7 +34,15 @@ public class UserController {
     @GetMapping("/authenticated")
     public ResponseEntity<UserResponse> getAuthenticatedUser(Authentication authentication) {
         String userEmail = (String) authentication.getPrincipal();
+        if (userEmail != null) {
+            UserDTO authenticatedUser = userService.getUserByEmail(userEmail);
+            UserResponse userResponse = modelMapper.map(authenticatedUser, UserResponse.class);
 
-        return ResponseEntity.ok(new UserResponse());
+            if (userResponse == null) return new ResponseEntity(HttpStatus.FORBIDDEN);
+
+            return ResponseEntity.ok(userResponse);
+        }
+
+        return new ResponseEntity(HttpStatus.FORBIDDEN);
     }
 }
