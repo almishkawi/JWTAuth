@@ -1,3 +1,3 @@
-## JWTAuth
+## JWTAuth API
 
-### JWT Authentication with Spring Boot and Spring Security
+### JWT Authentication API with Spring Boot and Spring Security
