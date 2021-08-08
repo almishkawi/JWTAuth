@@ -73,10 +73,9 @@ class JwtAuthApplicationTests {
 				.andReturn();
 
 		/* email already exists scenario */
-		mockMvc
-				.perform(post("/api/users")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(requestPayload))
+		mockMvc.perform(post("/api/users")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(requestPayload))
 				.andExpect(status().isBadRequest());
 
 		UserResponse userResponse = modelMapper.map(userRequest, UserResponse.class);
@@ -123,6 +122,6 @@ class JwtAuthApplicationTests {
 				.andReturn();
 
 		assertEquals(userResponseBody, authenticatedRequestResult.getResponse().getContentAsString());
-		/* AUTHENTICATED USER DETAILS TEST — END */
+		/* ------------------------------- */
 	}
 }
